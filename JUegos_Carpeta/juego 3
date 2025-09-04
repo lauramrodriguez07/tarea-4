@@ -1,1 +1,100 @@
 
+import pygame
+import random
+
+# Inicialización
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+pygame.display.set_caption("Juego de Disparos")
+clock = pygame.time.Clock()
+
+# Colores
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+BLACK = (0, 0, 0)
+
+# Jugador
+player_size = 50
+player_x = 400
+player_y = 500
+player_speed = 5
+
+# Balas
+bullets = []
+bullet_speed = 7
+
+# Enemigos
+enemies = []
+enemy_size = 40
+enemy_speed = 2
+
+# Función para dibujar jugador
+def draw_player(x, y):
+    pygame.draw.rect(screen, BLUE, (x, y, player_size, player_size))
+
+# Función para dibujar enemigos
+def draw_enemy(x, y):
+    pygame.draw.circle(screen, RED, (x + enemy_size//2, y + enemy_size//2), enemy_size//2)
+
+# Función para dibujar balas
+def draw_bullet(x, y):
+    pygame.draw.rect(screen, BLACK, (x, y, 5, 10))
+
+# Bucle principal
+running = True
+while running:
+    screen.fill(WHITE)
+    
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                bullets.append([player_x + player_size//2 - 2, player_y])
+                
+    # Movimiento del jugador
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT] and player_x > 0:
+        player_x -= player_speed
+    if keys[pygame.K_RIGHT] and player_x < 800 - player_size:
+        player_x += player_speed
+        
+    # Generar enemigos
+    if random.randint(1, 30) == 1:
+        enemies.append([random.randint(0, 800 - enemy_size), 0])
+        
+    # Mover enemigos
+    for enemy in enemies[:]:
+        enemy[1] += enemy_speed
+        if enemy[1] > 600:
+            enemies.remove(enemy)
+        else:
+            draw_enemy(enemy[0], enemy[1])
+            
+    # Mover balas
+    for bullet in bullets[:]:
+        bullet[1] -= bullet_speed
+        if bullet[1] < 0:
+            bullets.remove(bullet)
+        else:
+            draw_bullet(bullet[0], bullet[1])
+            
+    # Detectar colisiones bala-enemigo
+    for bullet in bullets[:]:
+        for enemy in enemies[:]:
+            if (bullet[0] < enemy[0] + enemy_size and
+                bullet[0] + 5 > enemy[0] and
+                bullet[1] < enemy[1] + enemy_size and
+                bullet[1] + 10 > enemy[1]):
+                if bullet in bullets:
+                    bullets.remove(bullet)
+                if enemy in enemies:
+                    enemies.remove(enemy)
+                    
+    draw_player(player_x, player_y)
+    
+    pygame.display.update()
+    clock.tick(60)
+
+pygame.quit()
