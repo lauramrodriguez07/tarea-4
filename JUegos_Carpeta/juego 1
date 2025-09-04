@@ -1,1 +1,74 @@
+import pygame
+import random
 
+# Inicialización
+pygame.init()
+screen = pygame.display.set_mode((800, 600))
+pygame.display.set_caption("Juego de Evasión")
+clock = pygame.time.Clock()
+
+# Colores
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+
+# Jugador
+player_size = 50
+player_x = 400
+player_y = 500
+player_speed = 5
+
+# Enemigos
+enemies = []
+enemy_size = 30
+enemy_speed = 3
+
+# Función para dibujar jugador
+def draw_player(x, y):
+    pygame.draw.rect(screen, BLUE, (x, y, player_size, player_size))
+
+# Función para dibujar enemigos
+def draw_enemy(x, y):
+    pygame.draw.rect(screen, RED, (x, y, enemy_size, enemy_size))
+
+# Bucle principal
+running = True
+while running:
+    screen.fill(WHITE)
+    
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+            
+    # Movimiento del jugador
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT] and player_x > 0:
+        player_x -= player_speed
+    if keys[pygame.K_RIGHT] and player_x < 800 - player_size:
+        player_x += player_speed
+        
+    # Generar enemigos
+    if random.randint(1, 20) == 1:
+        enemies.append([random.randint(0, 800 - enemy_size), 0])
+        
+    # Mover y dibujar enemigos
+    for enemy in enemies[:]:
+        enemy[1] += enemy_speed
+        if enemy[1] > 600:
+            enemies.remove(enemy)
+        else:
+            draw_enemy(enemy[0], enemy[1])
+            
+        # Detectar colisiones
+        if (player_x < enemy[0] + enemy_size and
+            player_x + player_size > enemy[0] and
+            player_y < enemy[1] + enemy_size and
+            player_y + player_size > enemy[1]):
+            running = False
+            
+    draw_player(player_x, player_y)
+    
+    pygame.display.update()
+    clock.tick(60)
+
+pygame.quit()
