@@ -1,16 +1,37 @@
 import pygame
 import random
+import math
 
 # Inicialización
 pygame.init()
 screen = pygame.display.set_mode((800, 600))
-pygame.display.set_caption("Juego de Evasión")
+pygame.display.set_caption("Juego de Alimentación Saludable")
 clock = pygame.time.Clock()
+font = pygame.font.Font(None, 36)
+big_font = pygame.font.Font(None, 72)
 
 # Colores
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
+GREEN = (0, 255, 0)
+BLACK = (0, 0, 0)
+YELLOW = (255, 255, 0)
+ORANGE = (255, 165, 0)
+BROWN = (139, 69, 19)
+PINK = (255, 192, 203)
+
+# Variables de juego
+score = 0
+level = 1
+game_state = "menu"  # menu, playing, game_over
+
+# Configuración de niveles
+level_configs = {
+    1: {"speed": 3, "spawn_rate": 25, "name": "Fácil"},
+    2: {"speed": 5, "spawn_rate": 20, "name": "Medio"},
+    3: {"speed": 7, "spawn_rate": 15, "name": "Difícil"}
+}
 
 # Jugador
 player_size = 50
@@ -18,55 +39,214 @@ player_x = 400
 player_y = 500
 player_speed = 5
 
-# Enemigos
-enemies = []
-enemy_size = 30
-enemy_speed = 3
+# Comida
+foods = []
+food_size = 30
 
-# Función para dibujar jugador
+# Función para dibujar cara que come (jugador)
 def draw_player(x, y):
-    pygame.draw.rect(screen, BLUE, (x, y, player_size, player_size))
+    # Cara principal (círculo amarillo)
+    pygame.draw.circle(screen, YELLOW, (x + player_size//2, y + player_size//2), player_size//2)
+    
+    # Ojos
+    eye_size = 8
+    pygame.draw.circle(screen, BLACK, (x + player_size//3, y + player_size//3), eye_size)
+    pygame.draw.circle(screen, BLACK, (x + 2*player_size//3, y + player_size//3), eye_size)
+    
+    # Boca (semicírculo abierto)
+    mouth_rect = pygame.Rect(x + player_size//4, y + 2*player_size//3, player_size//2, player_size//4)
+    pygame.draw.arc(screen, BLACK, mouth_rect, 0, math.pi, 4)
 
-# Función para dibujar enemigos
-def draw_enemy(x, y):
-    pygame.draw.rect(screen, RED, (x, y, enemy_size, enemy_size))
+# Función para dibujar hamburguesa
+def draw_hamburger(x, y):
+    # Pan superior
+    pygame.draw.circle(screen, BROWN, (x + food_size//2, y + 8), 12)
+    # Lechuga
+    pygame.draw.rect(screen, GREEN, (x + 5, y + 12, food_size-10, 4))
+    # Carne
+    pygame.draw.rect(screen, BROWN, (x + 3, y + 16, food_size-6, 6))
+    # Pan inferior
+    pygame.draw.rect(screen, BROWN, (x + 2, y + 22, food_size-4, 6))
+
+# Función para dibujar pizza
+def draw_pizza(x, y):
+    # Base de la pizza (triángulo)
+    points = [(x + food_size//2, y + 5), (x + 5, y + food_size-5), (x + food_size-5, y + food_size-5)]
+    pygame.draw.polygon(screen, YELLOW, points)
+    # Pepperoni
+    pygame.draw.circle(screen, RED, (x + food_size//2, y + 15), 4)
+    pygame.draw.circle(screen, RED, (x + 10, y + 20), 3)
+
+# Función para dibujar brócoli
+def draw_broccoli(x, y):
+    # Tallo
+    pygame.draw.rect(screen, GREEN, (x + 12, y + 20, 6, 8))
+    # Copa (varios círculos verdes)
+    pygame.draw.circle(screen, GREEN, (x + 10, y + 15), 6)
+    pygame.draw.circle(screen, GREEN, (x + 20, y + 15), 6)
+    pygame.draw.circle(screen, GREEN, (x + 15, y + 8), 7)
+
+# Función para dibujar zanahoria
+def draw_carrot(x, y):
+    # Cuerpo de la zanahoria
+    points = [(x + food_size//2, y + food_size-5), (x + 8, y + 5), (x + food_size-8, y + 5)]
+    pygame.draw.polygon(screen, ORANGE, points)
+    # Hojas verdes
+    pygame.draw.rect(screen, GREEN, (x + 10, y + 2, 3, 8))
+    pygame.draw.rect(screen, GREEN, (x + 14, y + 2, 3, 8))
+    pygame.draw.rect(screen, GREEN, (x + 18, y + 2, 3, 8))
+
+# Función para dibujar comida
+def draw_food(food_type, x, y):
+    if food_type == "hamburger":
+        draw_hamburger(x, y)
+    elif food_type == "pizza":
+        draw_pizza(x, y)
+    elif food_type == "broccoli":
+        draw_broccoli(x, y)
+    elif food_type == "carrot":
+        draw_carrot(x, y)
+
+# Función para mostrar menú
+def show_menu():
+    screen.fill(WHITE)
+    title_text = big_font.render("Alimentación Saludable", True, BLACK)
+    screen.blit(title_text, (150, 150))
+    
+    instructions = [
+        "Come verduras para ganar puntos (+10)",
+        "Evita la comida chatarra (-20 puntos)",
+        "Usa las flechas para moverte",
+        "",
+        "Presiona:",
+        "1 - Nivel Fácil",
+        "2 - Nivel Medio", 
+        "3 - Nivel Difícil",
+        "Q - Salir"
+    ]
+    
+    for i, instruction in enumerate(instructions):
+        text = font.render(instruction, True, BLACK)
+        screen.blit(text, (200, 220 + i * 30))
+
+# Función para mostrar game over
+def show_game_over():
+    screen.fill(WHITE)
+    game_over_text = big_font.render("¡Juego Terminado!", True, RED)
+    screen.blit(game_over_text, (200, 200))
+    
+    score_text = font.render(f"Puntuación Final: {score}", True, BLACK)
+    screen.blit(score_text, (300, 280))
+    
+    level_text = font.render(f"Nivel: {level_configs[level]['name']}", True, BLACK)
+    screen.blit(level_text, (320, 320))
+    
+    restart_text = font.render("Presiona R para reiniciar o Q para salir", True, BLACK)
+    screen.blit(restart_text, (200, 360))
+
+# Función para reiniciar juego
+def reset_game():
+    global score, player_x, player_y, foods
+    score = 0
+    player_x = 400
+    player_y = 500
+    foods = []
 
 # Bucle principal
 running = True
 while running:
-    screen.fill(WHITE)
     
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-            
-    # Movimiento del jugador
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT] and player_x > 0:
-        player_x -= player_speed
-    if keys[pygame.K_RIGHT] and player_x < 800 - player_size:
-        player_x += player_speed
+    if game_state == "menu":
+        show_menu()
         
-    # Generar enemigos
-    if random.randint(1, 20) == 1:
-        enemies.append([random.randint(0, 800 - enemy_size), 0])
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_1:
+                    level = 1
+                    game_state = "playing"
+                    reset_game()
+                elif event.key == pygame.K_2:
+                    level = 2
+                    game_state = "playing"
+                    reset_game()
+                elif event.key == pygame.K_3:
+                    level = 3
+                    game_state = "playing"
+                    reset_game()
+                elif event.key == pygame.K_q:
+                    running = False
+    
+    elif game_state == "playing":
+        screen.fill(WHITE)
         
-    # Mover y dibujar enemigos
-    for enemy in enemies[:]:
-        enemy[1] += enemy_speed
-        if enemy[1] > 600:
-            enemies.remove(enemy)
-        else:
-            draw_enemy(enemy[0], enemy[1])
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                
+        # Movimiento del jugador
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT] and player_x > 0:
+            player_x -= player_speed
+        if keys[pygame.K_RIGHT] and player_x < 800 - player_size:
+            player_x += player_speed
             
-        # Detectar colisiones
-        if (player_x < enemy[0] + enemy_size and
-            player_x + player_size > enemy[0] and
-            player_y < enemy[1] + enemy_size and
-            player_y + player_size > enemy[1]):
-            running = False
+        # Generar comida
+        config = level_configs[level]
+        if random.randint(1, config["spawn_rate"]) == 1:
+            food_types = ["hamburger", "pizza", "broccoli", "carrot"]
+            food_type = random.choice(food_types)
+            foods.append([random.randint(0, 800 - food_size), 0, food_type])
             
-    draw_player(player_x, player_y)
+        # Mover y dibujar comida
+        for food in foods[:]:
+            food[1] += config["speed"]
+            if food[1] > 600:
+                foods.remove(food)
+            else:
+                draw_food(food[2], food[0], food[1])
+                
+            # Detectar colisiones
+            if (player_x < food[0] + food_size and
+                player_x + player_size > food[0] and
+                player_y < food[1] + food_size and
+                player_y + player_size > food[1]):
+                
+                # Determinar tipo de comida y actualizar puntuación
+                if food[2] in ["broccoli", "carrot"]:  # Verduras
+                    score += 10
+                else:  # Comida chatarra
+                    score -= 20
+                    if score < 0:
+                        game_state = "game_over"
+                
+                foods.remove(food)
+                
+        draw_player(player_x, player_y)
+        
+        # Mostrar información del juego
+        score_text = font.render(f"Puntos: {score}", True, WHITE)  # Color del texto de puntuación
+        screen.blit(score_text, (10, 10))
+        
+        level_text = font.render(f"Nivel: {level_configs[level]['name']}", True, WHITE)  # Color del texto de nivel
+        screen.blit(level_text, (10, 50))
+        
+        # Verificar si el juego debe terminar por puntos negativos
+        if score < 0:
+            game_state = "game_over"
+    
+    elif game_state == "game_over":
+        show_game_over()
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    game_state = "menu"
+                elif event.key == pygame.K_q:
+                    running = False
     
     pygame.display.update()
     clock.tick(60)
