@@ -1,11 +1,10 @@
-
 import pygame
 import random
 
 # Inicialización
 pygame.init()
 screen = pygame.display.set_mode((800, 600))
-pygame.display.set_caption("Juego de Disparos")
+pygame.display.set_caption("Policía vs Ladrones")
 clock = pygame.time.Clock()
 
 # Colores
@@ -13,8 +12,17 @@ WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 BLACK = (0, 0, 0)
+GREEN = (0, 128, 0)
+DARK_GREEN = (0, 100, 0)
 
-# Jugador
+# Variables de juego
+current_level = 1
+escaped_thieves = 0
+max_escaped = 3
+game_state = "playing"  # playing, game_over
+font = pygame.font.SysFont(None, 36)
+
+# Jugador (Policía)
 player_size = 50
 player_x = 400
 player_y = 500
@@ -24,75 +32,175 @@ player_speed = 5
 bullets = []
 bullet_speed = 7
 
-# Enemigos
+# Enemigos (Ladrones)
 enemies = []
 enemy_size = 40
-enemy_speed = 2
+base_enemy_speed = 2
+enemy_speed = base_enemy_speed
 
-# Función para dibujar jugador
+# Configuración de niveles
+def get_level_config(level):
+    if level == 1:
+        return {"speed": 2, "spawn_rate": 30, "name": "Fácil"}
+    elif level == 2:
+        return {"speed": 3, "spawn_rate": 25, "name": "Medio"}
+    else:  # level 3
+        return {"speed": 4, "spawn_rate": 20, "name": "Difícil"}
+
+# Actualizar configuración del nivel
+def update_level():
+    global enemy_speed
+    config = get_level_config(current_level)
+    enemy_speed = config["speed"]
+
+# Función para dibujar jugador (Policía)
 def draw_player(x, y):
-    pygame.draw.rect(screen, BLUE, (x, y, player_size, player_size))
+    # Cuerpo del policía (uniforme verde)
+    pygame.draw.rect(screen, GREEN, (x + 10, y + 15, 30, 35))
+    # Cabeza
+    pygame.draw.circle(screen, (255, 220, 177), (x + 25, y + 12), 8)
+    # Gorra de policía
+    pygame.draw.rect(screen, DARK_GREEN, (x + 18, y + 5, 14, 8))
+    pygame.draw.rect(screen, DARK_GREEN, (x + 20, y + 3, 10, 4))
+    # Brazos
+    pygame.draw.rect(screen, (255, 220, 177), (x + 2, y + 18, 8, 15))
+    pygame.draw.rect(screen, (255, 220, 177), (x + 40, y + 18, 8, 15))
+    # Piernas
+    pygame.draw.rect(screen, BLUE, (x + 15, y + 35, 8, 15))
+    pygame.draw.rect(screen, BLUE, (x + 27, y + 35, 8, 15))
 
-# Función para dibujar enemigos
+# Función para dibujar enemigos (Ladrones)
 def draw_enemy(x, y):
-    pygame.draw.circle(screen, RED, (x + enemy_size//2, y + enemy_size//2), enemy_size//2)
+    # Cuerpo del ladrón (ropa negra)
+    pygame.draw.rect(screen, BLACK, (x + 8, y + 12, 24, 28))
+    # Cabeza
+    pygame.draw.circle(screen, (255, 220, 177), (x + 20, y + 10), 6)
+    # Máscara/gorro negro
+    pygame.draw.rect(screen, BLACK, (x + 15, y + 5, 10, 8))
+    # Brazos
+    pygame.draw.rect(screen, BLACK, (x + 2, y + 15, 6, 12))
+    pygame.draw.rect(screen, BLACK, (x + 32, y + 15, 6, 12))
+    # Piernas
+    pygame.draw.rect(screen, BLACK, (x + 12, y + 30, 6, 10))
+    pygame.draw.rect(screen, BLACK, (x + 22, y + 30, 6, 10))
 
 # Función para dibujar balas
 def draw_bullet(x, y):
     pygame.draw.rect(screen, BLACK, (x, y, 5, 10))
 
+# Función para mostrar información del juego
+def show_game_info():
+    level_text = font.render(f"Nivel: {current_level} ({get_level_config(current_level)['name']})", True, BLACK)
+    screen.blit(level_text, (10, 10))
+    
+    escaped_text = font.render(f"Ladrones escapados: {escaped_thieves}/{max_escaped}", True, BLACK)
+    screen.blit(escaped_text, (10, 50))
+    
+    if escaped_thieves >= max_escaped - 1:
+        warning_text = font.render("¡CUIDADO! Un ladrón más y pierdes", True, RED)
+        screen.blit(warning_text, (200, 90))
+
+# Función para mostrar game over
+def show_game_over():
+    screen.fill((64, 64, 64))
+    game_over_text = pygame.font.SysFont(None, 72).render("GAME OVER", True, RED)
+    screen.blit(game_over_text, (250, 200))
+    
+    level_reached_text = font.render(f"Llegaste al nivel: {current_level}", True, WHITE)
+    screen.blit(level_reached_text, (300, 300))
+    
+    restart_text = font.render("Presiona R para reiniciar o Q para salir", True, WHITE)
+    screen.blit(restart_text, (220, 350))
+
+# Función para reiniciar juego
+def reset_game():
+    global current_level, escaped_thieves, game_state, enemies, bullets
+    current_level = 1
+    escaped_thieves = 0
+    game_state = "playing"
+    enemies = []
+    bullets = []
+    update_level()
+
+# Inicializar nivel
+update_level()
+
 # Bucle principal
 running = True
 while running:
-    screen.fill(WHITE)
     
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE:
-                bullets.append([player_x + player_size//2 - 2, player_y])
-                
-    # Movimiento del jugador
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT] and player_x > 0:
-        player_x -= player_speed
-    if keys[pygame.K_RIGHT] and player_x < 800 - player_size:
-        player_x += player_speed
+    if game_state == "playing":
+        screen.fill(WHITE)
         
-    # Generar enemigos
-    if random.randint(1, 30) == 1:
-        enemies.append([random.randint(0, 800 - enemy_size), 0])
-        
-    # Mover enemigos
-    for enemy in enemies[:]:
-        enemy[1] += enemy_speed
-        if enemy[1] > 600:
-            enemies.remove(enemy)
-        else:
-            draw_enemy(enemy[0], enemy[1])
-            
-    # Mover balas
-    for bullet in bullets[:]:
-        bullet[1] -= bullet_speed
-        if bullet[1] < 0:
-            bullets.remove(bullet)
-        else:
-            draw_bullet(bullet[0], bullet[1])
-            
-    # Detectar colisiones bala-enemigo
-    for bullet in bullets[:]:
-        for enemy in enemies[:]:
-            if (bullet[0] < enemy[0] + enemy_size and
-                bullet[0] + 5 > enemy[0] and
-                bullet[1] < enemy[1] + enemy_size and
-                bullet[1] + 10 > enemy[1]):
-                if bullet in bullets:
-                    bullets.remove(bullet)
-                if enemy in enemies:
-                    enemies.remove(enemy)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    bullets.append([player_x + player_size//2 - 2, player_y])
                     
-    draw_player(player_x, player_y)
+        # Movimiento del jugador
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT] and player_x > 0:
+            player_x -= player_speed
+        if keys[pygame.K_RIGHT] and player_x < 800 - player_size:
+            player_x += player_speed
+            
+        # Generar enemigos según el nivel
+        config = get_level_config(current_level)
+        if random.randint(1, config["spawn_rate"]) == 1:
+            enemies.append([random.randint(0, 800 - enemy_size), 0])
+            
+        # Mover enemigos
+        for enemy in enemies[:]:
+            enemy[1] += enemy_speed
+            if enemy[1] > 600:  # Ladrón escapó
+                enemies.remove(enemy)
+                escaped_thieves += 1
+                if escaped_thieves >= max_escaped:
+                    game_state = "game_over"
+            else:
+                draw_enemy(enemy[0], enemy[1])
+                
+        # Mover balas
+        for bullet in bullets[:]:
+            bullet[1] -= bullet_speed
+            if bullet[1] < 0:
+                bullets.remove(bullet)
+            else:
+                draw_bullet(bullet[0], bullet[1])
+                
+        # Detectar colisiones bala-enemigo
+        for bullet in bullets[:]:
+            for enemy in enemies[:]:
+                if (bullet[0] < enemy[0] + enemy_size and
+                    bullet[0] + 5 > enemy[0] and
+                    bullet[1] < enemy[1] + enemy_size and
+                    bullet[1] + 10 > enemy[1]):
+                    if bullet in bullets:
+                        bullets.remove(bullet)
+                    if enemy in enemies:
+                        enemies.remove(enemy)
+                        # Aumentar nivel cada 10 enemigos eliminados
+                        if len([e for e in enemies]) == 0 and random.randint(1, 10) == 1:
+                            if current_level < 3:
+                                current_level += 1
+                                update_level()
+                        
+        draw_player(player_x, player_y)
+        show_game_info()
+        
+    elif game_state == "game_over":
+        show_game_over()
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    reset_game()
+                elif event.key == pygame.K_q:
+                    running = False
     
     pygame.display.update()
     clock.tick(60)
