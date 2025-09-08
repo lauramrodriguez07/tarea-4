@@ -1,16 +1,39 @@
 import pygame
 import random
+import math
 
 # Inicialización
 pygame.init()
 screen = pygame.display.set_mode((800, 600))
-pygame.display.set_caption("Juego de Recolección")
+pygame.display.set_caption("Juego de Limpieza de Casa")
 clock = pygame.time.Clock()
 
 # Colores
 WHITE = (255, 255, 255)
 GREEN = (0, 255, 0)
 YELLOW = (255, 255, 0)
+BLACK = (0, 0, 0)
+BROWN = (139, 69, 19)
+BLUE = (0, 0, 255)
+RED = (255, 0, 0)
+PURPLE = (128, 0, 128)
+ORANGE = (255, 165, 0)
+GRAY = (128, 128, 128)
+PINK = (255, 192, 203)
+LIGHT_BROWN = (205, 133, 63)
+DARK_GRAY = (64, 64, 64)
+
+# Variables de juego
+current_level = 1
+game_state = "menu"  # menu, playing, level_complete, game_over
+start_time = 0
+
+# Configuración de niveles - CORREGIDO: 12, 18, 20 objetos
+level_configs = {
+    1: {"name": "Cuarto", "time_limit": 90, "items_needed": 12, "bg_color": (255, 228, 196)},
+    2: {"name": "Sala", "time_limit": 60, "items_needed": 18, "bg_color": (240, 248, 255)},
+    3: {"name": "Patio", "time_limit": 50, "items_needed": 20, "bg_color": (144, 238, 144)}
+}
 
 # Jugador
 player_size = 40
@@ -25,57 +48,288 @@ item_size = 20
 # Puntuación
 score = 0
 font = pygame.font.SysFont(None, 36)
+big_font = pygame.font.SysFont(None, 72)
 
-# Función para dibujar jugador
+# Función para dibujar persona (jugador)
 def draw_player(x, y):
-    pygame.draw.circle(screen, GREEN, (x + player_size//2, y + player_size//2), player_size//2)
+    # Cabeza
+    pygame.draw.circle(screen, (255, 220, 177), (x + player_size//2, y + 8), 8)
+    # Cuerpo
+    pygame.draw.rect(screen, BLUE, (x + player_size//2 - 6, y + 16, 12, 20))
+    # Brazos
+    pygame.draw.rect(screen, (255, 220, 177), (x + player_size//2 - 12, y + 18, 6, 12))
+    pygame.draw.rect(screen, (255, 220, 177), (x + player_size//2 + 6, y + 18, 6, 12))
+    # Piernas
+    pygame.draw.rect(screen, BLACK, (x + player_size//2 - 8, y + 36, 6, 12))
+    pygame.draw.rect(screen, BLACK, (x + player_size//2 + 2, y + 36, 6, 12))
 
-# Función para dibujar objetos
-def draw_item(x, y):
-    pygame.draw.rect(screen, YELLOW, (x, y, item_size, item_size))
+# Función para dibujar ropa tirada
+def draw_clothes(x, y):
+    # Camisa arrugada
+    pygame.draw.ellipse(screen, RED, (x, y + 5, item_size, item_size - 8))
+    pygame.draw.rect(screen, RED, (x + 3, y, item_size - 6, 8))
+
+# Función para dibujar basura
+def draw_trash(x, y):
+    # Papel arrugado
+    pygame.draw.circle(screen, GRAY, (x + item_size//2, y + item_size//2), item_size//2)
+    # Líneas para dar textura
+    pygame.draw.line(screen, DARK_GRAY, (x + 3, y + 5), (x + item_size - 3, y + item_size - 5), 2)
+
+# Función para dibujar juguetes
+def draw_toy(x, y):
+    # Pelota
+    pygame.draw.circle(screen, ORANGE, (x + item_size//2, y + item_size//2), item_size//2)
+    # Líneas de la pelota
+    pygame.draw.arc(screen, RED, (x, y, item_size, item_size), 0, math.pi, 2)
+
+# Función para dibujar fondo del cuarto
+def draw_bedroom_bg():
+    # Cama
+    pygame.draw.rect(screen, BROWN, (50, 450, 150, 100))
+    pygame.draw.rect(screen, WHITE, (50, 430, 150, 20))
+    # Closet
+    pygame.draw.rect(screen, LIGHT_BROWN, (600, 350, 120, 200))
+    pygame.draw.line(screen, BLACK, (660, 350), (660, 550), 3)
+    # Ventana
+    pygame.draw.rect(screen, (135, 206, 235), (300, 50, 100, 80))
+    pygame.draw.rect(screen, BLACK, (300, 50, 100, 80), 3)
+    pygame.draw.line(screen, BLACK, (350, 50), (350, 130), 2)
+
+# Función para dibujar fondo de la sala
+def draw_living_room_bg():
+    # Sofá
+    pygame.draw.rect(screen, BROWN, (100, 450, 200, 80))
+    pygame.draw.rect(screen, BROWN, (90, 430, 220, 20))
+    # Mesa de centro
+    pygame.draw.rect(screen, LIGHT_BROWN, (350, 480, 100, 60))
+    # TV
+    pygame.draw.rect(screen, BLACK, (500, 100, 150, 100))
+    pygame.draw.rect(screen, GRAY, (520, 120, 110, 60))
+    # Ventana grande
+    pygame.draw.rect(screen, (135, 206, 235), (50, 50, 120, 100))
+    pygame.draw.rect(screen, BLACK, (50, 50, 120, 100), 3)
+
+# Función para dibujar fondo del patio
+def draw_patio_bg():
+    # Césped (textura)
+    for i in range(0, 800, 40):
+        for j in range(400, 600, 30):
+            pygame.draw.line(screen, (0, 128, 0), (i, j), (i + 10, j + 5), 2)
+    # Árbol
+    pygame.draw.rect(screen, BROWN, (650, 300, 30, 100))
+    pygame.draw.circle(screen, GREEN, (665, 300), 50)
+    # Cerca
+    for i in range(0, 800, 60):
+        pygame.draw.rect(screen, BROWN, (i, 500, 8, 60))
+    pygame.draw.rect(screen, BROWN, (0, 520, 800, 8))
+
+# Función para dibujar objetos según el nivel
+def draw_item(x, y, level):
+    if level == 1:  # Cuarto: ropa y basura
+        if random.random() > 0.5:
+            draw_clothes(x, y)
+        else:
+            draw_trash(x, y)
+    elif level == 2:  # Sala: ropa y basura
+        if random.random() > 0.5:
+            draw_clothes(x, y)
+        else:
+            draw_trash(x, y)
+    else:  # Patio: juguetes
+        draw_toy(x, y)
+
+# Función para mostrar menú
+def show_menu():
+    screen.fill((255, 248, 220))
+    title_text = big_font.render("Limpieza de Casa", True, BLACK)
+    screen.blit(title_text, (220, 150))
+    
+    instructions = [
+        "¡Ayuda a limpiar la casa!",
+        "",
+        "Nivel 1: Cuarto (90 segundos) - 12 objetos",
+        "Nivel 2: Sala (60 segundos) - 18 objetos", 
+        "Nivel 3: Patio (50 segundos) - 20 objetos",
+        "",
+        "Usa las flechas para moverte",
+        "Recoge toda la basura para pasar de nivel",
+        "",
+        "Presiona ESPACIO para comenzar",
+        "Presiona Q para salir"
+    ]
+    
+    for i, instruction in enumerate(instructions):
+        text = font.render(instruction, True, BLACK)
+        screen.blit(text, (200, 220 + i * 25))
+
+# Función para mostrar pantalla de nivel completado
+def show_level_complete():
+    screen.fill((144, 238, 144))
+    if current_level < 3:
+        complete_text = big_font.render(f"¡{level_configs[current_level]['name']} Limpio!", True, BLACK)
+        screen.blit(complete_text, (200, 200))
+        next_text = font.render(f"Siguiente: {level_configs[current_level + 1]['name']}", True, BLACK)
+        screen.blit(next_text, (280, 280))
+        continue_text = font.render("Presiona ESPACIO para continuar", True, BLACK)
+        screen.blit(continue_text, (230, 320))
+    else:
+        complete_text = big_font.render("¡Casa Completamente Limpia!", True, BLACK)
+        screen.blit(complete_text, (120, 200))
+        final_text = font.render(f"Puntuación Total: {score}", True, BLACK)
+        screen.blit(final_text, (300, 280))
+        restart_text = font.render("Presiona ESPACIO o R para volver al menú", True, BLACK)
+        screen.blit(restart_text, (180, 320))
+
+# Función para mostrar game over
+def show_game_over():
+    screen.fill((255, 182, 193))
+    game_over_text = big_font.render("¡Tiempo Agotado!", True, RED)
+    screen.blit(game_over_text, (220, 200))
+    
+    level_text = font.render(f"Nivel: {level_configs[current_level]['name']}", True, BLACK)
+    screen.blit(level_text, (320, 280))
+    
+    restart_text = font.render("Presiona R para reiniciar o Q para salir", True, BLACK)
+    screen.blit(restart_text, (200, 320))
+
+# Función para reiniciar nivel
+def reset_level():
+    global items, player_x, player_y, start_time
+    items = []
+    player_x = 400
+    player_y = 300
+    start_time = pygame.time.get_ticks()
+    
+    # Generar objetos iniciales según el nivel
+    items_needed = level_configs[current_level]["items_needed"]
+    for _ in range(items_needed):
+        items.append([random.randint(0, 800 - item_size), random.randint(0, 600 - item_size)])
+
+# Función para reiniciar juego completo
+def reset_game():
+    global score, current_level
+    score = 0
+    current_level = 1
+    reset_level()
 
 # Bucle principal
 running = True
 while running:
-    screen.fill(WHITE)
     
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-            
-    # Movimiento del jugador
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT] and player_x > 0:
-        player_x -= player_speed
-    if keys[pygame.K_RIGHT] and player_x < 800 - player_size:
-        player_x += player_speed
-    if keys[pygame.K_UP] and player_y > 0:
-        player_y -= player_speed
-    if keys[pygame.K_DOWN] and player_y < 600 - player_size:
-        player_y += player_speed
+    if game_state == "menu":
+        show_menu()
         
-    # Generar objetos
-    if random.randint(1, 30) == 1:
-        items.append([random.randint(0, 800 - item_size), random.randint(0, 600 - item_size)])
-        
-    # Recolectar objetos
-    for item in items[:]:
-        if (player_x < item[0] + item_size and
-            player_x + player_size > item[0] and
-            player_y < item[1] + item_size and
-            player_y + player_size > item[1]):
-            items.remove(item)
-            score += 1
-            
-    # Dibujar objetos
-    for item in items:
-        draw_item(item[0], item[1])
-        
-    draw_player(player_x, player_y)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    game_state = "playing"
+                    reset_game()
+                elif event.key == pygame.K_q:
+                    running = False
     
-    # Mostrar puntuación
-    score_text = font.render(f"Puntos: {score}", True, (0, 0, 0))
-    screen.blit(score_text, (10, 10))
+    elif game_state == "playing":
+        # Fondo según el nivel
+        screen.fill(level_configs[current_level]["bg_color"])
+        
+        # Dibujar fondo específico del nivel
+        if current_level == 1:
+            draw_bedroom_bg()
+        elif current_level == 2:
+            draw_living_room_bg()
+        else:
+            draw_patio_bg()
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                
+        # Movimiento del jugador
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT] and player_x > 0:
+            player_x -= player_speed
+        if keys[pygame.K_RIGHT] and player_x < 800 - player_size:
+            player_x += player_speed
+        if keys[pygame.K_UP] and player_y > 0:
+            player_y -= player_speed
+        if keys[pygame.K_DOWN] and player_y < 600 - player_size:
+            player_y += player_speed
+            
+        # Calcular tiempo restante
+        current_time = pygame.time.get_ticks()
+        elapsed_time = (current_time - start_time) // 1000
+        time_remaining = level_configs[current_level]["time_limit"] - elapsed_time
+        
+        # Verificar si se agotó el tiempo
+        if time_remaining <= 0:
+            game_state = "game_over"
+            
+        # Recolectar objetos
+        for item in items[:]:
+            if (player_x < item[0] + item_size and
+                player_x + player_size > item[0] and
+                player_y < item[1] + item_size and
+                player_y + player_size > item[1]):
+                items.remove(item)
+                score += 1
+                
+        # CORREGIDO: Verificar si se completó el nivel sin duplicar increment
+        if len(items) == 0:
+            game_state = "level_complete"
+                
+        # Dibujar objetos
+        for item in items:
+            draw_item(item[0], item[1], current_level)
+            
+        draw_player(player_x, player_y)
+        
+        # Mostrar información del juego
+        score_text = font.render(f"Puntos: {score}", True, BLACK)
+        screen.blit(score_text, (10, 10))
+        
+        level_text = font.render(f"Nivel: {level_configs[current_level]['name']}", True, BLACK)
+        screen.blit(level_text, (10, 50))
+        
+        time_text = font.render(f"Tiempo: {time_remaining}s", True, BLACK)
+        screen.blit(time_text, (10, 90))
+        
+        items_left_text = font.render(f"Objetos restantes: {len(items)}", True, BLACK)
+        screen.blit(items_left_text, (10, 130))
+    
+    elif game_state == "level_complete":
+        show_level_complete()
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    if current_level < 3:
+                        # CORREGIDO: Solo incrementar aquí al presionar ESPACIO
+                        current_level += 1
+                        reset_level()
+                        game_state = "playing"
+                    else:
+                        # Juego completado, volver al menú
+                        game_state = "menu"
+                elif event.key == pygame.K_r:
+                    game_state = "menu"
+                elif event.key == pygame.K_q:
+                    running = False
+    
+    elif game_state == "game_over":
+        show_game_over()
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    game_state = "menu"
+                elif event.key == pygame.K_q:
+                    running = False
     
     pygame.display.update()
     clock.tick(60)
