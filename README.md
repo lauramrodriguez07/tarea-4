@@ -1,2 +1,5 @@
 # tarea-4
-juegos
+Juegos Modificados
+Explicación juego_1
+Explicación Juego_2
+Explicación juego_3
