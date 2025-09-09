@@ -1,4 +1,4 @@
-# tarea-4
+# TAREA 4
 ## Juegos Modificados
 ## Elaborado por: Diana Bernal y Laura Rodriguez
 
