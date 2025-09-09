@@ -15,6 +15,8 @@ En primer lugar, se modificó la temática del juego a una de temática "Saludab
 
 + La velocidad y frecuencia con la que cae la comida depende del nivel en el que se este.
 
+Con respecto a los niveles se puede elegir dependiendo en el que se desee. Si se quiere el nivel "Fácil" se debe seleccionar el 1. Para el nivel "Medio" se debe poner el 2. Por último, para el nivel más avanzado se selecciona el 3. Cuando se requiera salir del juego es posible realizarlo mediante la tecla <strong> Q </strong> y para reiniciarlo con la <strong> R </strong>. 
+
 
 
 
