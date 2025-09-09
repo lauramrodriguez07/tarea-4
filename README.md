@@ -3,7 +3,7 @@
 ## Elaborado por: Diana Bernal y Laura Rodriguez
 
 ## 1. Explicación juego_1
-En primer lugar, se modificó la temática del juego a una de temática "Saludable". El juego básicamente consta del movimiento de la carita feliz tanto de izquierda como derecha. Existen dos tipos de comidas. La primera son, las "Verduras" que son las que suman puntos en el juego (+10). La segunda son, las "Hamburguesas" que son las que restan puntos en el juego (-20). Cuando el juego llegue a cero se acaba.</br>
+En primer lugar, se modificó la temática del juego a una de temática "Saludable". El juego básicamente consta del movimiento de la carita feliz tanto de izquierda como derecha. Existen dos tipos de comidas. La primera son, las <strong> "Verduras"</strong>  que son las que suman puntos en el juego <strong>(+10) </strong>. La segunda son,<strong> "Hamburguesas" </strong>  las que son las que restan puntos en el juego<strong> (-20) </strong>. Cuando el juego llegue a cero se acaba.</br>
 
 <strong> Ejecución del juego:</strong>
   
