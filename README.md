@@ -21,9 +21,9 @@ Con respecto a los niveles se puede elegir dependiendo en el que se desee. Si se
 
 
 
-## 2. Explicación Juego_2
+## 2. Explicación Juego 2
 
 
 
 
-## 3. Explicación juego_3
+## 3. Explicación Juego 3
